@@ -1,31 +1,24 @@
 import crypto from 'crypto';
 
-const HASH_OUTPUT_BYTES = 64
+
 
 const getPepper = () => {
-    const pepper = process.env.PEPPER
-    if (!pepper) {
-        throw new Error('PEPPER no esta configurado en variables de entorno')
-    }
+    const pepper = process.env.PEPPER || process.env.PASSWORD_PEPPER
+
     return pepper
 }
 
-export const getSalt = () => {
-    const size = Number(process.env.SALT_SIZE || 16)
-    return crypto.randomBytes(size).toString('hex')
+const createSalt = () => {
+    return crypto.randomBytes(16).toString('hex')
 }
 
-export const hashText = (text) => {
-    return crypto.createHash('sha512').update(text).digest('hex')
-}
-
-export const hashPassword = (password, salt) => {
+const hashPassword = (password, salt) => {
     const pepper = getPepper()
-    return crypto.scryptSync(password, `${salt}${pepper}`, HASH_OUTPUT_BYTES).toString('hex')
+    return crypto.scryptSync(`${password}${pepper}`, salt, 64).toString('hex')
 }
 
 export const verifyPassword = (password, salt, storedHash) => {
-    if (!/^[a-f0-9]+$/i.test(storedHash)) {
+    if (!salt || typeof storedHash !== 'string' || !/^[a-f0-9]+$/i.test(storedHash)) {
         return false
     }
 
@@ -41,11 +34,7 @@ export const verifyPassword = (password, salt, storedHash) => {
 }
 
 export const protectPassword = (password) => {
-    const salt = getSalt()
+    const salt = createSalt()
     const hashedPassword = hashPassword(password, salt)
     return { salt, hashedPassword }
-}
-
-export const isProtectedPassword = (user) => {
-    return Boolean(user?.salt && /^[a-f0-9]{128}$/i.test(user?.password || ''))
 }

@@ -1,7 +1,14 @@
 import User from "../models/users.models.js";
-import { protectPassword, verifyPassword, isProtectedPassword } from "../utils/hash.js";
-import { sanitizeUser } from "../utils/sanitize.js";
+import { verifyPassword } from "../utils/hash.js";
 import { signJWT } from "../utils/jwt.js";
+
+const sanitizeUser = (user) => {
+    if (!user) return null
+
+    const plainUser = typeof user.toObject === 'function' ? user.toObject() : user
+    const { password, salt, ...safeUser } = plainUser
+    return safeUser
+}
 
 export const login = async (req, res) => {
     try {
@@ -17,17 +24,7 @@ export const login = async (req, res) => {
             return res.status(404).json({ login: false, msg: "User not found", user: {}, token: "" })
         }
 
-        let validCredentials = false
-
-        if (isProtectedPassword(user)) {
-            validCredentials = verifyPassword(password, user.salt, user.password)
-        } else if (user.password === password) {
-            const { salt, hashedPassword } = protectPassword(password)
-            user.password = hashedPassword
-            user.salt = salt
-            await user.save()
-            validCredentials = true
-        }
+        const validCredentials = verifyPassword(password, user.salt, user.password)
 
         if (!validCredentials) {
             return res.status(401).json({ login: false, msg: "Wrong credentials", user: {}, token: "" })

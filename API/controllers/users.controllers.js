@@ -1,6 +1,14 @@
 import User from "../models/users.models.js"
 import { protectPassword } from "../utils/hash.js"
-import { sanitizeUser } from "../utils/sanitize.js"
+
+const sanitizeUser = (user) => {
+    if (!user) return null
+
+    const plainUser = typeof user.toObject === 'function' ? user.toObject() : user
+    const { password, salt, ...safeUser } = plainUser
+    return safeUser
+}
+
 export const getUsers = async(req,res) => {
     try {
         const users = await User.find({}, '-password -salt')
