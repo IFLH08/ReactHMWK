@@ -16,18 +16,13 @@ export const signJWT = (payload, options = {}) => {
 
 export const validateJWT = (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization
+        const token = req.headers.authorization
 
-        if (!authHeader) {
+        if (!token) {
             return res.status(401).json({ error: 'No token provided' })
         }
 
-        if (!authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Invalid authorization format' })
-        }
-
-        const token = authHeader.slice(7).trim()
-        const decoded = jwt.verify(token, getJwtSecret())
+        const decoded = jwt.verify(token.trim(), getJwtSecret())
 
         req.auth = decoded
         next()
