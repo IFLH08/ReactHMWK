@@ -22,19 +22,14 @@ function App() {
     setToken('')
   }
 
-  const getAuthHeaders = () => ({
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  })
-
   useEffect(() => {
     if (!isLogin || !token) return
 
     const getUsers = async () => {
       try {
-        const res = await fetch(`${API_URL}/users/`, {
+        const res = await fetch(`${API_URL}/users`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            authorization: token,
           },
         })
 
@@ -80,7 +75,9 @@ function App() {
     try {
       const res = await fetch(`${API_URL}/users/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
+        headers: {
+          authorization: token,
+        },
       })
 
       if (!res.ok) {
@@ -104,7 +101,10 @@ function App() {
     try {
       const res = await fetch(`${API_URL}/users`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: token,
+        },
         body: JSON.stringify(newUser),
       })
 
