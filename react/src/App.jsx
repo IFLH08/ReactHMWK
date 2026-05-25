@@ -7,7 +7,7 @@ import Contenido from './views/Contenido'
 import ResponsiveAppBar from './components/AppBar'
 import Admin from './views/Admin'
 
-const API_URL = 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function App() {
   const [isLogin, setIsLogin] = useState(false)

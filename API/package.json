@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "seed:root": "node scripts/seed-root.js",
     "hash:demo": "node scripts/hash-demo.js",
     "migrate:passwords": "node scripts/migrate-passwords.js"
   },

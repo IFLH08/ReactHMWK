@@ -15,7 +15,8 @@ import AdbIcon from '@mui/icons-material/Adb';
 import { useNavigate } from 'react-router-dom';
 
 function ResponsiveAppBar({ onLogout, user }) {
-  const pages = user && user.username === 'IFLH' ? ['Profile', 'Contenido', 'Admin'] : ['Profile', 'Contenido']
+  const isAdminUser = user && (user.username === 'IFLH' || user.username === 'root')
+  const pages = isAdminUser ? ['Profile', 'Contenido', 'Admin'] : ['Profile', 'Contenido']
   const settings = ['Logout']
   const navigate = useNavigate();
   const [anchorElNav, setAnchorElNav] = React.useState(null);
