@@ -1,0 +1,6 @@
+
+> api@1.0.0 start
+> node index.js
+
+http://localhost:8012
+[0mGET /ping [32m200[0m 3.310 ms - 4[0m

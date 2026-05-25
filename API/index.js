@@ -7,8 +7,6 @@ import usersRoutes from "./routes/users.routes.js"
 import loginRoutes from "./routes/login.routes.js"
 import { connectDB } from './utils/db.js';
 
-connectDB()
-
 const app = express();
 const allowedOrigins = [
     'http://localhost:5173',
@@ -33,6 +31,16 @@ app.use(usersRoutes)
 
 const PORT = process.env.PORT || 8000;
 
-app.listen(PORT, () => {
-    console.log("http://localhost:" + PORT)
-})
+const startServer = async () => {
+    try {
+        await connectDB()
+        app.listen(PORT, () => {
+            console.log(`Server listening on port ${PORT}`)
+        })
+    } catch (error) {
+        console.error('Error starting server:', error)
+        process.exit(1)
+    }
+}
+
+startServer()
