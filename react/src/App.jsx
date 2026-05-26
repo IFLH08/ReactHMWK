@@ -6,6 +6,7 @@ import Profile from './views/Profile'
 import Contenido from './views/Contenido'
 import ResponsiveAppBar from './components/AppBar'
 import Admin from './views/Admin'
+import Details from './components/Details'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -149,6 +150,7 @@ function App() {
           }
         />
         <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/users/:id" element={<Details />} />
       </Routes>
     </BrowserRouter>
   )
