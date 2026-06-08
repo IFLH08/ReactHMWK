@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const Login = ({ login }) => {
@@ -23,7 +23,7 @@ const Login = ({ login }) => {
       setError('')
       navigate('/profile')
     } else {
-      setError('Usuario o contrasena incorrectos')
+      setError(res.msg || 'Usuario o contrasena incorrectos')
     }
   }
 

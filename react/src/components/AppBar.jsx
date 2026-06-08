@@ -15,7 +15,7 @@ import AdbIcon from '@mui/icons-material/Adb';
 import { useNavigate } from 'react-router-dom';
 
 function ResponsiveAppBar({ onLogout, user }) {
-  const isAdminUser = user && (user.username === 'IFLH' || user.username === 'root')
+  const isAdminUser = user?.role === 'admin'
   const pages = isAdminUser ? ['Profile', 'Contenido', 'Admin'] : ['Profile', 'Contenido']
   const settings = ['Logout']
   const navigate = useNavigate();
@@ -140,7 +140,7 @@ function ResponsiveAppBar({ onLogout, user }) {
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
+                <Avatar alt={user?.username || 'User avatar'} src="/static/images/avatar/2.jpg" />
               </IconButton>
             </Tooltip>
             <Menu

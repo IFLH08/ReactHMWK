@@ -1,5 +1,3 @@
-import React from 'react'
-
 const Profile = ({ user }) => {
   if (!user || Object.keys(user).length === 0) {
     return (
@@ -15,6 +13,8 @@ const Profile = ({ user }) => {
       <div>profile</div>
       <h1>Nombre: {user.name}</h1>
       <h2>Id: {user._id}</h2>
+      <h2>Username: {user.username}</h2>
+      <h2>Role: {user.role || 'user'}</h2>
     </>
   )
 }

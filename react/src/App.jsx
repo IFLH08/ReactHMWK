@@ -1,140 +1,191 @@
 import './App.css'
-import { useEffect, useState } from 'react'
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
+import { useEffect, useEffectEvent, useState } from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import ResponsiveAppBar from './components/AppBar'
+import Details from './components/Details'
+import useAuth from './hooks/useAuth'
+import Admin from './views/Admin'
+import Contenido from './views/Contenido'
 import Login from './views/Login'
 import Profile from './views/Profile'
-import Contenido from './views/Contenido'
-import ResponsiveAppBar from './components/AppBar'
-import Admin from './views/Admin'
-import Details from './components/Details'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+import { apiRequest } from './utils/api'
 
 function App() {
-  const [isLogin, setIsLogin] = useState(false)
-  const [user, setUser] = useState({})
+  const { isLogin, user, token, setSession, logout } = useAuth()
   const [users, setUsers] = useState([])
-  const [token, setToken] = useState('')
+  const [adminError, setAdminError] = useState('')
+  const [adminMessage, setAdminMessage] = useState('')
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
+  const isAdmin = user?.role === 'admin'
 
-  const logout = () => {
-    setIsLogin(false)
-    setUser({})
+  const resetAdminState = () => {
     setUsers([])
-    setToken('')
+    setAdminError('')
+    setAdminMessage('')
+    setIsLoadingUsers(false)
   }
 
+  const handleLogout = () => {
+    logout()
+    resetAdminState()
+  }
+
+  const handleUnauthorized = useEffectEvent(() => {
+    handleLogout()
+  })
+
   useEffect(() => {
-    if (!isLogin || !token) return
+    if (!isLogin || !token || !isAdmin) {
+      setUsers([])
+      return
+    }
+
+    let ignore = false
 
     const getUsers = async () => {
+      setIsLoadingUsers(true)
+      setAdminError('')
+
       try {
-        const res = await fetch(`${API_URL}/users`, {
-          headers: {
-            authorization: token,
-          },
-        })
+        const data = await apiRequest('/users', { token })
 
-        if (!res.ok) {
-          if (res.status === 401) {
-            logout()
-          }
+        if (!ignore) {
+          setUsers(data)
+        }
+      } catch (error) {
+        console.error('Error al obtener usuarios', error)
 
-          const err = await res.json().catch(() => ({}))
-          alert(err.error || 'Error al obtener usuarios')
+        if (error.status === 401) {
+          handleUnauthorized()
           return
         }
 
-        const data = await res.json()
-        setUsers(data)
-      } catch (error) {
-        console.error(error)
-        alert('Error al obtener usuarios')
+        if (!ignore) {
+          setAdminError(error.message || 'Error al obtener usuarios')
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoadingUsers(false)
+        }
       }
     }
 
     getUsers()
-  }, [isLogin, token])
+
+    return () => {
+      ignore = true
+    }
+  }, [isAdmin, isLogin, token])
 
   const login = async (credentials) => {
-    const res = await fetch(`${API_URL}/login/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    })
-    const data = await res.json()
-
-    setIsLogin(Boolean(data.login))
-    setUser(data.user || {})
-    setToken(data.token || '')
-
-    return data
-  }
-
-  const delUser = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/users/${id}`, {
-        method: 'DELETE',
-        headers: {
-          authorization: token,
-        },
+      const data = await apiRequest('/login/', {
+        method: 'POST',
+        body: credentials,
       })
 
-      if (!res.ok) {
-        if (res.status === 401) {
-          logout()
-        }
+      setSession({
+        user: data.user || {},
+        token: data.token || '',
+      })
+      setAdminError('')
+      setAdminMessage('')
 
-        const err = await res.json().catch(() => ({}))
-        alert(err.error || 'Error al eliminar usuario')
-        return
-      }
-
-      setUsers((prev) => prev.filter((u) => u._id !== id))
+      return data
     } catch (error) {
-      console.error(error)
-      alert('Error al eliminar usuario')
+      console.error('Error al iniciar sesion', error)
+      return {
+        login: false,
+        msg: error.message || 'No se pudo conectar con la API',
+        user: {},
+        token: '',
+      }
     }
   }
 
   const addUser = async (newUser) => {
     try {
-      const res = await fetch(`${API_URL}/users`, {
+      const data = await apiRequest('/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          authorization: token,
-        },
-        body: JSON.stringify(newUser),
+        token,
+        body: newUser,
       })
 
-      if (!res.ok) {
-        if (res.status === 401) {
-          logout()
-        }
+      setUsers((prev) => [data, ...prev])
+      setAdminError('')
+      setAdminMessage('Usuario creado correctamente')
+      return data
+    } catch (error) {
+      console.error('Error al crear usuario', error)
 
-        const err = await res.json().catch(() => ({}))
-        alert(err.error || 'Error al crear usuario')
+      if (error.status === 401) {
+        handleLogout()
         return null
       }
 
-      const data = await res.json()
-      setUsers((prev) => [...prev, data])
+      setAdminError(error.message || 'Error al crear usuario')
+      return null
+    }
+  }
+
+  const updateUser = async (id, updates) => {
+    try {
+      const data = await apiRequest(`/users/${id}`, {
+        method: 'PUT',
+        token,
+        body: updates,
+      })
+
+      setUsers((prev) => prev.map((item) => (item._id === id ? data : item)))
+      setAdminError('')
+      setAdminMessage('Usuario actualizado correctamente')
       return data
     } catch (error) {
-      console.error(error)
-      alert('Error al crear usuario')
+      console.error('Error al actualizar usuario', error)
+
+      if (error.status === 401) {
+        handleLogout()
+        return null
+      }
+
+      setAdminError(error.message || 'Error al actualizar usuario')
       return null
+    }
+  }
+
+  const deleteUser = async (id) => {
+    try {
+      await apiRequest(`/users/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+
+      setUsers((prev) => prev.filter((item) => item._id !== id))
+      setAdminError('')
+      setAdminMessage('Usuario eliminado correctamente')
+      return true
+    } catch (error) {
+      console.error('Error al eliminar usuario', error)
+
+      if (error.status === 401) {
+        handleLogout()
+        return false
+      }
+
+      setAdminError(error.message || 'Error al eliminar usuario')
+      return false
     }
   }
 
   return (
     <BrowserRouter>
-      {isLogin && <ResponsiveAppBar onLogout={logout} user={user} />}
+      {isLogin && <ResponsiveAppBar onLogout={handleLogout} user={user} />}
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<Login login={login} />} />
+        <Route path="/" element={<Navigate to={isLogin ? '/profile' : '/login'} replace />} />
+        <Route
+          path="/login"
+          element={isLogin ? <Navigate to="/profile" replace /> : <Login login={login} />}
+        />
         <Route
           path="/profile"
           element={isLogin ? <Profile user={user} /> : <Navigate to="/login" replace />}
@@ -146,11 +197,37 @@ function App() {
         <Route
           path="/admin"
           element={
-            isLogin ? <Admin users={users} deluser={delUser} adduser={addUser} /> : <Navigate to="/login" replace />
+            isLogin ? (
+              isAdmin ? (
+                <Admin
+                  users={users}
+                  addUser={addUser}
+                  updateUser={updateUser}
+                  deleteUser={deleteUser}
+                  currentUserId={user?._id}
+                  loading={isLoadingUsers}
+                  error={adminError}
+                  message={adminMessage}
+                />
+              ) : (
+                <Navigate to="/profile" replace />
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-        <Route path="/users/:id" element={<Details />} />
+        <Route
+          path="/users/:id"
+          element={
+            isLogin ? (
+              <Details token={token} currentUser={user} onUnauthorized={handleLogout} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route path="*" element={<Navigate to={isLogin ? '/profile' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
   )

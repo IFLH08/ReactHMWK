@@ -5,12 +5,21 @@ import { connectDB } from '../utils/db.js'
 import { protectPassword } from '../utils/hash.js'
 
 const ROOT_USER = {
-    name: 'Root',
-    username: 'root',
-    password: 'root'
+    name: process.env.ROOT_NAME,
+    username: process.env.ROOT_USERNAME,
+    password: process.env.ROOT_PASSWORD,
+    role: process.env.ROOT_ROLE || 'admin',
 }
 
 const seedRoot = async () => {
+    if (!ROOT_USER.name || !ROOT_USER.username || !ROOT_USER.password) {
+        throw new Error('ROOT_NAME, ROOT_USERNAME y ROOT_PASSWORD son obligatorios para seed:root')
+    }
+
+    if (!['admin', 'user'].includes(ROOT_USER.role)) {
+        throw new Error('ROOT_ROLE debe ser "admin" o "user"')
+    }
+
     console.log('Conectando a MongoDB...')
     await connectDB()
 
@@ -19,6 +28,7 @@ const seedRoot = async () => {
 
     if (existingUser) {
         existingUser.name = ROOT_USER.name
+        existingUser.role = ROOT_USER.role
         existingUser.password = hashedPassword
         existingUser.salt = salt
         await existingUser.save()
@@ -31,6 +41,7 @@ const seedRoot = async () => {
         username: ROOT_USER.username,
         password: hashedPassword,
         salt,
+        role: ROOT_USER.role,
     })
 
     await user.save()

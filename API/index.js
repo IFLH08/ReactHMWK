@@ -8,26 +8,60 @@ import loginRoutes from "./routes/login.routes.js"
 import { connectDB } from './utils/db.js';
 
 const app = express();
-const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    process.env.CLIENT_URL,
-].filter(Boolean)
+const allowedOrigins = new Set(
+    [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'https://react-hmwk.vercel.app',
+        process.env.CLIENT_URL,
+    ]
+        .filter(Boolean)
+        .map((origin) => origin.trim().replace(/\/+$/, ''))
+)
 
-app.use(cors({
+const corsOptions = {
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin) {
             return callback(null, true)
         }
 
-        return callback(new Error('Not allowed by CORS'))
-    }
-}))
-app.use(express.json())
+        const normalizedOrigin = origin.trim().replace(/\/+$/, '')
+
+        if (allowedOrigins.has(normalizedOrigin)) {
+            return callback(null, true)
+        }
+
+        return callback(new Error(`CORS origin not allowed: ${normalizedOrigin}`))
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 204,
+}
+
+app.disable('x-powered-by')
 app.use(morgan("dev"))
+app.use(cors(corsOptions))
+app.options(/.*/, cors(corsOptions))
+app.use(express.json())
 app.use(indexRoutes)
 app.use(loginRoutes)
 app.use(usersRoutes)
+
+app.use((error, req, res, next) => {
+    if (error?.message?.startsWith('CORS origin not allowed:')) {
+        return res.status(403).json({
+            error: 'Origin not allowed by CORS',
+            origin: req.headers.origin || null,
+        })
+    }
+
+    if (error) {
+        console.error(error)
+        return res.status(500).json({ error: 'Internal server error' })
+    }
+
+    next()
+})
 
 const PORT = process.env.PORT || 8000;
 

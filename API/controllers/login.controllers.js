@@ -7,7 +7,10 @@ const sanitizeUser = (user) => {
 
     const plainUser = typeof user.toObject === 'function' ? user.toObject() : user
     const { password, salt, ...safeUser } = plainUser
-    return safeUser
+    return {
+        ...safeUser,
+        role: safeUser.role || 'user',
+    }
 }
 
 export const login = async (req, res) => {
@@ -21,7 +24,7 @@ export const login = async (req, res) => {
         const user = await User.findOne({ username })
 
         if (!user) {
-            return res.status(404).json({ login: false, msg: "User not found", user: {}, token: "" })
+            return res.status(401).json({ login: false, msg: "Wrong credentials", user: {}, token: "" })
         }
 
         const validCredentials = verifyPassword(password, user.salt, user.password)
@@ -31,7 +34,13 @@ export const login = async (req, res) => {
         }
 
         const safeUser = sanitizeUser(user)
-        const token = signJWT({ sub: user._id.toString(), username: user.username })
+        const userId = user._id.toString()
+        const token = signJWT({
+            sub: userId,
+            id: userId,
+            username: user.username,
+            role: safeUser.role,
+        })
 
         return res.json({ login: true, msg: "Ok", user: safeUser, token })
     } catch (error) {
